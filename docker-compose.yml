@@ -1,0 +1,46 @@
+services:
+  store_manager:
+    build: .
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - .:/app
+    ports:
+      - "5000:5000"
+    networks:
+      - labo03-network
+    depends_on:
+      - mysql
+      - redis
+
+  mysql:
+    image: mysql:8
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: labo03_db
+      MYSQL_USER: labo03
+      MYSQL_PASSWORD: labo03
+    networks:
+      - labo03-network
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db-init:/docker-entrypoint-initdb.d
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    networks:
+      - labo03-network
+    ports:
+      - "6379:6379"
+
+networks:
+  labo03-network:
+    driver: bridge
+    external: true
+
+volumes:
+  mysql_data:

@@ -1,0 +1,15 @@
+@startuml
+  node ConteneurMagasin {
+    component "store_manager.py" 
+    database "MySQL"
+    database "Redis"
+    "store_manager.py" <--> "MySQL"
+    "store_manager.py" <--> "Redis"
+  }
+
+  node ConteneurFournisseur {
+    component "supplier_app.py" 
+  }
+
+  ConteneurMagasin <--> ConteneurFournisseur : HTTPS
+@enduml

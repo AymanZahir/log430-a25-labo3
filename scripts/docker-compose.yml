@@ -1,0 +1,14 @@
+services:
+  supplier_app:
+    build: .
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - .:/app
+    networks:
+      - labo03-network
+
+networks:
+  labo03-network:
+    driver: bridge
+    external: true

@@ -8,28 +8,71 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: labo03_db
+          MYSQL_USER: labo03
+          MYSQL_PASSWORD: labo03
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -u root -proot"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-      - name: Install dependencies
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y default-mysql-client
+
+      - name: Wait for MySQL readiness
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h 127.0.0.1 -P 3306 -u root -proot --silent; then
+              break
+            fi
+            echo "Waiting for MySQL (attempt $i)..."
+            sleep 2
+          done
+
+      - name: Seed database schema
+        run: mysql -h 127.0.0.1 -P 3306 -u root -proot < db-init/init.sql
+
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Creer fichier .env
+      - name: Create .env file
         run: |
-          echo "DB_HOST=127.0.0.1" >> .env
-          echo "DB_PORT=3306" >> .env
-          echo "DB_NAME=labo03_db" >> .env
-          echo "DB_USER=labo03" >> .env
-          echo "DB_PASS=labo03" >> .env
-          echo "REDIS_HOST=127.0.0.1" >> .env
-          echo "REDIS_PORT=6379" >> .env
-          echo "REDIS_DB=0" >> .env
+          cat <<'EOF' > .env
+          DB_HOST=127.0.0.1
+          DB_PORT=3306
+          DB_NAME=labo03_db
+          DB_USER=labo03
+          DB_PASS=labo03
+          REDIS_HOST=127.0.0.1
+          REDIS_PORT=6379
+          REDIS_DB=0
+          EOF
 
       - name: Run tests
-        working-directory: src
-        run: echo "Call pytest command here!"
+        env:
+          PYTHONPATH: src
+        run: pytest -q
